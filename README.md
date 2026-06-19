@@ -1,10 +1,10 @@
-# ChatGPT Session to CPA / sub2api / Cockpit / 9router / Codex / AxonHub / Codex-Manager
+# ChatGPT Session to CPA / Sub2api / Cockpit / 9router / Codex / Axonhub / Codex-Manager
 
 纯前端单页面工具，用来把 ChatGPT Web 登录 session JSON 转换成 CPA、sub2api、Cockpit Tools、9router、Codex auth.json、AxonHub 或 Codex-Manager 可导入 JSON。
 
 ## 在线使用
 
-### [**》》 点我直接使用 《《**](https://gtxx3600.github.io/GPTSession2CPAandSub2API/)
+### [**》》 点我直接使用 《《**](https://converter.khixang.cc.cd/)
 
 ## 使用提示
 
