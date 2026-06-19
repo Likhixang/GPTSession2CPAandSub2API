@@ -230,14 +230,8 @@
       }
       [data-theme="light"] .theme-toggle .sun-icon,
       [data-theme="dark"] .theme-toggle .moon-icon,
-      .theme-toggle .system-icon {
+      :root:not([data-theme]) .theme-toggle .system-icon {
         display: block;
-      }
-      :root:not([data-theme]) .theme-toggle .system-icon { display: none; }
-      :root:not([data-theme]) .theme-toggle .sun-icon { display: block; }
-      @media (prefers-color-scheme: dark) {
-        :root:not([data-theme]) .theme-toggle .sun-icon { display: none; }
-        :root:not([data-theme]) .theme-toggle .moon-icon { display: block; }
       }
 
       /* ── Format Picker (Scrollable Pills) ── */
