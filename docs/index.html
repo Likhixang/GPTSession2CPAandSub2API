@@ -942,9 +942,7 @@
           <div class="card-body">
 
             <!-- Notice -->
-            <div class="notice" id="cpa-notice">
-              缺少真实 <code>refresh_token</code> 时：CPA/Cockpit/Codex 保留空字符串，Axonhub 写入占位符 <code>__missing_refresh_token__</code>，Codex-Manager 保留空字符串。access token 过期后不能自动刷新。
-            </div>
+            <div class="notice" id="cpa-notice"></div>
 
             <!-- Stats -->
             <div class="summary">
@@ -1490,6 +1488,27 @@
           element.classList.toggle("is-error", tone === "error");
         }
 
+        const NOTICE_TEXTS = {
+          sub2api: "account 缺少真实 refresh_token 时，expires_at 使用 access_token 的 JWT 过期时间，auto_pause_on_expired 为 true，到期自动暂停。",
+          cpa: "缺少真实 refresh_token 时 access_token 过期后不能自动刷新。",
+          cockpit: "缺少真实 refresh_token 时 access_token 过期后不能自动刷新。",
+          "9router": "缺少真实 refresh_token 时 access_token 过期后不可用，建议尽快补充。",
+          codex: "缺少真实 refresh_token 时 access_token 过期后不能自动刷新。",
+          axonhub: "缺少真实 refresh_token 时写入占位符 <code>__missing_refresh_token__</code>，access token 过期后不能自动刷新。",
+          codexmanager: "缺少真实 refresh_token 时 access_token 过期后不能自动刷新。",
+        };
+
+        function updateNotice(format) {
+          const notice = elements.cpaNotice;
+          const text = NOTICE_TEXTS[format] || "";
+          if (text) {
+            notice.innerHTML = text;
+            notice.classList.add("is-visible");
+          } else {
+            notice.classList.remove("is-visible");
+          }
+        }
+
         function updateOutput() {
           const hasConverted = state.converted.length > 0;
           let outputText = "";
@@ -1501,7 +1520,7 @@
           elements.statCount.textContent = String(state.converted.length);
           elements.statErrors.textContent = String(state.skipped.length);
           elements.outputSubtitle.textContent = OUTPUT_LABELS[state.format];
-          elements.cpaNotice.classList.toggle("is-visible", ["cpa","cockpit","codex","axonhub","codexmanager"].includes(state.format));
+          updateNotice(state.format);
           renderAccounts();
           renderIssues();
           if (outputText) {
