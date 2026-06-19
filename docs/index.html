@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Session Converter — CPA / sub2api / Cockpit / 9router / Codex / AxonHub / Codex-Manager</title>
+    <title>Session Converter — CPA / Sub2api / Cockpit / 9router / Codex / Axonhub / Codex-Manager</title>
     <meta name="theme-color" content="#1c2c33" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1c1e" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" sizes="any" />
@@ -387,6 +387,7 @@
         right: 0;
         z-index: 20;
         min-width: 200px;
+        max-width: 320px;
         padding: 10px;
         border-radius: var(--radius-md);
         background: var(--surface);
@@ -783,6 +784,14 @@
         }
         .col-name { width: 30%; }
         .col-email { width: 70%; }
+        .accent-dropdown {
+          right: auto;
+          left: 0;
+          min-width: 180px;
+          max-width: calc(100vw - 24px);
+        }
+        .accent-swatches { gap: 4px; }
+        .accent-dot { width: 22px; height: 22px; }
       }
 
       @media (max-width: 480px) {
@@ -863,12 +872,12 @@
       <!-- ═══ Format Picker ═══ -->
       <div class="format-bar">
         <div class="format-picker" role="group" aria-label="输出格式">
-          <button type="button" data-format="sub2api" aria-pressed="true">sub2api</button>
+          <button type="button" data-format="sub2api" aria-pressed="true">Sub2api</button>
           <button type="button" data-format="cpa" aria-pressed="false">CPA</button>
           <button type="button" data-format="cockpit" aria-pressed="false">Cockpit</button>
           <button type="button" data-format="9router" aria-pressed="false">9router</button>
           <button type="button" data-format="codex" aria-pressed="false">Codex</button>
-          <button type="button" data-format="axonhub" aria-pressed="false">AxonHub</button>
+          <button type="button" data-format="axonhub" aria-pressed="false">Axonhub</button>
           <button type="button" data-format="codexmanager" aria-pressed="false">Codex-Manager</button>
         </div>
         <div class="format-actions">
@@ -901,7 +910,7 @@
             </button>
             <div class="guide-content" id="guide-content">
               <p>在浏览器登录 ChatGPT，然后打开 <a href="https://chatgpt.com/api/auth/session" target="_blank" rel="noreferrer">chatgpt.com/api/auth/session</a>，复制整段 JSON 粘贴到下方输入框。</p>
-              <p style="margin-top:6px">也支持拖入或选择 9router、Codex auth.json、AxonHub、Codex-Manager JSON 文件。</p>
+              <p style="margin-top:6px">也支持拖入或选择 9router、Codex auth.json、Axonhub、Codex-Manager JSON 文件。</p>
               <div class="guide-warning">openai 已限制通过 Web session 绕过手机绑定验证；本页面仅做格式转换。accessToken 和 sessionToken 等同登录凭证，不要发给别人。</div>
             </div>
 
@@ -927,14 +936,14 @@
           <div class="card-header">
             <div>
               <h2>输出结果</h2>
-              <div class="card-header-sub" id="output-subtitle">sub2api 格式</div>
+              <div class="card-header-sub" id="output-subtitle">Sub2api 格式</div>
             </div>
           </div>
           <div class="card-body">
 
             <!-- Notice -->
             <div class="notice" id="cpa-notice">
-              缺少真实 <code>refresh_token</code> 时：CPA/Cockpit/Codex 保留空字符串，AxonHub 写入占位符 <code>__missing_refresh_token__</code>，Codex-Manager 保留空字符串。access token 过期后不能自动刷新。
+              缺少真实 <code>refresh_token</code> 时：CPA/Cockpit/Codex 保留空字符串，Axonhub 写入占位符 <code>__missing_refresh_token__</code>，Codex-Manager 保留空字符串。access token 过期后不能自动刷新。
             </div>
 
             <!-- Stats -->
@@ -986,12 +995,12 @@
     <script>
       (() => {
         const OUTPUT_LABELS = {
-          sub2api: "sub2api",
+          sub2api: "Sub2api",
           cpa: "CPA",
           cockpit: "Cockpit",
           "9router": "9router",
           codex: "Codex",
-          axonhub: "AxonHub",
+          axonhub: "Axonhub",
           codexmanager: "Codex-Manager",
         };
 
