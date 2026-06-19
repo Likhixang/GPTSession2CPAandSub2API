@@ -248,7 +248,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 16px;
-        align-items: start;
+        align-items: stretch;
       }
 
       /* ── Card ── */
@@ -257,6 +257,9 @@
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-md);
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
       }
 
       .card-header {
@@ -365,15 +368,19 @@
         transition: all 140ms ease;
       }
       .input-actions button:hover { background: #e5e5ea; color: var(--fg); }
-
-      .input-actions .btn-danger { color: var(--red); }
-      .input-actions .btn-danger:hover { background: #fee; }
+      .card-body {
+        padding: 16px 20px 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
 
       /* ── Textareas ── */
       textarea {
         display: block;
         width: 100%;
-        min-height: 340px;
+        flex: 1;
+        min-height: 100px;
         padding: 14px;
         border: 1px solid var(--separator-strong);
         border-radius: var(--radius-sm);
@@ -562,7 +569,6 @@
         }
         .col-name { width: 30%; }
         .col-email { width: 70%; }
-        textarea { min-height: 260px; }
       }
 
       @media (max-width: 480px) {
