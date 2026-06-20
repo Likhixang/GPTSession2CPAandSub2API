@@ -1388,7 +1388,7 @@
           const idToken = firstNonEmpty(inputIdToken, syntheticIdToken);
 
           const customToken = options.customAuthToken;
-          const authHeader = customToken || ("Bearer " + (accessToken || ""));
+          const authHeader = customToken ? `Bearer ${customToken}` : ("Bearer " + (accessToken || ""));
           const headers = { authorization: authHeader };
 
           const cpa = Object.fromEntries(Object.entries({
