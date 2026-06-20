@@ -927,6 +927,13 @@
             <!-- Textarea -->
             <textarea id="session-input" spellcheck="false" placeholder='{"user":{"email":"mark@example.com"},"expires":"2026-08-06T14:29:36.155Z","account":{"id":"...","planType":"plus"},"accessToken":"...","sessionToken":"..."}'></textarea>
 
+            <!-- Custom Auth Tokens -->
+            <div id="auth-tokens-container" style="display:none; margin-top:10px;">
+              <div style="font-size:0.78rem; font-weight:600; color:var(--fg-tertiary); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em;">Authorization Token</div>
+              <input id="auth-tokens-input" type="text" spellcheck="false" placeholder="留空默认每账号用自己的 Bearer accessToken。多个账号用英文逗号分隔" style="display:block; width:100%; height:32px; padding:0 10px; border:1px solid var(--separator-strong); border-radius:var(--radius-sm); background:var(--input-bg); color:var(--fg); font-family:var(--mono); font-size:0.8rem; outline:none; box-sizing:border-box;" />
+              <div id="auth-tokens-error" style="display:none; margin-top:4px; font-size:0.78rem; color:var(--red);"></div>
+            </div>
+
             <div class="status" id="input-status"><span class="dot"></span>等待输入。</div>
           </div>
         </section>
@@ -1013,6 +1020,9 @@
 
         const elements = {
           accountBody: document.querySelector("#account-body"),
+          authTokensContainer: document.querySelector("#auth-tokens-container"),
+          authTokensInput: document.querySelector("#auth-tokens-input"),
+          authTokensError: document.querySelector("#auth-tokens-error"),
           clearInput: document.querySelector("#clear-input"),
           copyOutput: document.querySelector("#copy-output"),
           cpaNotice: document.querySelector("#cpa-notice"),
@@ -1377,18 +1387,23 @@
           const syntheticIdToken = !inputIdToken ? buildSyntheticCodexIdToken(email, accountId, planType, userId, expiresAt) : undefined;
           const idToken = firstNonEmpty(inputIdToken, syntheticIdToken);
 
+          const customToken = options.customAuthToken;
+          const authHeader = customToken || ("Bearer " + (accessToken || ""));
+          const headers = { authorization: authHeader };
+
           const cpa = Object.fromEntries(Object.entries({
             type: "codex", account_id: accountId, chatgpt_account_id: accountId, email, name,
             plan_type: planType, chatgpt_plan_type: planType, id_token: idToken,
             id_token_synthetic: Boolean(syntheticIdToken) || undefined,
             access_token: accessToken, refresh_token: refreshToken || "", session_token: sessionToken,
             last_refresh: exportedAt, expired: expiresAt, disabled: Boolean(record.disabled) || undefined,
+            headers,
           }).filter(([, v]) => v !== undefined && v !== null));
 
           const cockpit = {
             type: "codex", id_token: idToken, access_token: accessToken,
             refresh_token: refreshToken || "", account_id: accountId, last_refresh: exportedAt,
-            email, expired: expiresAt,
+            email, expired: expiresAt, headers,
             account_note: firstNonEmpty(record.account_note, record.accountInfo, record.account_info, record.note, record.notes, record.remark),
           };
 
@@ -1397,7 +1412,7 @@
             platform: "openai", type: "oauth",
             expires_at: accessTokenExpiresAt, auto_pause_on_expired: accessTokenExpiresAt ? true : undefined,
             concurrency: 10, priority: 1,
-            credentials: { access_token: accessToken, chatgpt_account_id: accountId, chatgpt_user_id: userId, email, expires_at: expiresAt, expires_in: expiresIn, plan_type: planType },
+            credentials: { access_token: accessToken, chatgpt_account_id: accountId, chatgpt_user_id: userId, email, expires_at: expiresAt, expires_in: expiresIn, plan_type: planType, headers },
             extra: { email, email_key: toEmailKey(email), name, auth_provider: firstNonEmpty(record.authProvider, record.auth_provider), source: sourceType, last_refresh: exportedAt },
           });
 
@@ -1410,20 +1425,21 @@
             accessToken, refreshToken, expiresAt,
             testStatus: firstNonEmpty(record.testStatus, record.test_status, "active"), expiresIn,
             providerSpecificData: { chatgptAccountId: accountId, chatgptPlanType: planType },
-            id: accountId, provider: "codex", authType: "oauth", name, email, priority, isActive, createdAt, updatedAt,
+            id: accountId, provider: "codex", authType: "oauth", name, email, priority, isActive, createdAt, updatedAt, headers,
           });
 
           const axonHubRefreshToken = refreshToken || AXONHUB_PLACEHOLDER_REFRESH_TOKEN;
           const codexAuthJson = {
             auth_mode: "chatgpt", OPENAI_API_KEY: null,
             tokens: { id_token: idToken, access_token: accessToken, refresh_token: refreshToken || "", account_id: accountId },
-            last_refresh: exportedAt,
+            last_refresh: exportedAt, headers,
           };
           const axonHub = stripUnavailable({
             auth_mode: "chatgpt", last_refresh: getAxonHubLastRefresh(expiresAt, options.now || new Date()),
             tokens: { access_token: accessToken, refresh_token: axonHubRefreshToken, id_token: idToken },
             axonhub_refresh_token_placeholder: refreshToken ? undefined : true,
             axonhub_note: refreshToken ? undefined : "refresh_token is a placeholder; access_token works only until it expires.",
+            headers,
           });
           const codexManagerTokenHints = Object.fromEntries(Object.entries({
             account_id: accountId, chatgpt_account_id: chatgptAccountId,
@@ -1435,7 +1451,7 @@
           }).filter(([, v]) => v !== undefined && v !== null && v !== ""));
           const codexManager = {
             tokens: { access_token: accessToken, refresh_token: refreshToken || "", id_token: inputIdToken || "", ...codexManagerTokenHints },
-            meta: codexManagerMeta,
+            meta: codexManagerMeta, headers,
           };
 
           return {
@@ -1460,16 +1476,44 @@
           return buildSub2apiDocument(converted, now);
         }
 
+        function getParsedTokens() {
+          const raw = elements.authTokensInput ? elements.authTokensInput.value.trim() : "";
+          if (!raw) return null; // 没填 → 每账号用自己的 accessToken
+          return raw.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
+        }
+
         function convertFromText(text) {
           const sources = parseInputDocuments(text);
           const converted = [];
           const skipped = [];
           const now = new Date();
+
+          // 显示 / 隐藏 token 输入框
+          if (sources.length > 0) {
+            elements.authTokensContainer.style.display = "block";
+          } else {
+            elements.authTokensContainer.style.display = "none";
+          }
+
+          // 解析 token
+          const tokens = getParsedTokens();
+          if (tokens !== null && sources.length > 0 && tokens.length !== sources.length) {
+            elements.authTokensError.textContent = `Token 数量 (${tokens.length}) 与账号数量 (${sources.length}) 不匹配`;
+            elements.authTokensError.style.display = "block";
+            state.converted = [];
+            state.skipped = [{ sourceName: "pasted-json", path: "$", reason: `Token 数量 ${tokens.length} 与账号 ${sources.length} 不匹配` }];
+            state.sessions = sources;
+            updateOutput();
+            return;
+          }
+          elements.authTokensError.style.display = "none";
+
           sources.forEach((item, index) => {
             try {
               converted.push(convertSession(item.value, {
                 now, sourceKey: "pasted-json",
                 sourceName: item.sourceName, sourcePath: item.path || `$[${index}]`,
+                customAuthToken: tokens ? tokens[index] : "",
               }));
             } catch (error) {
               skipped.push({ sourceName: item.sourceName, path: item.path, reason: error instanceof Error ? error.message : "无法转换" });
@@ -1554,6 +1598,7 @@
           const text = elements.input.value;
           if (!text.trim()) {
             state.converted = []; state.skipped = []; state.sessions = [];
+            elements.authTokensContainer.style.display = "none";
             updateOutput();
             setStatus(elements.inputStatus, "等待输入", "");
             return;
@@ -1646,8 +1691,31 @@
             }
             const now = new Date();
             const converted = []; const convertSkipped = [...skipped];
+
+            // Show token input
+            const totalFound = documents.length + skipped.filter((s) => s.reason !== "无法读取文件").length;
+            if (documents.length > 0) {
+              elements.authTokensContainer.style.display = "block";
+            } else {
+              elements.authTokensContainer.style.display = "none";
+            }
+
+            // Validate tokens
+            const tokens = getParsedTokens();
+            if (tokens !== null && documents.length > 0 && tokens.length !== documents.length) {
+              elements.authTokensError.textContent = `Token 数量 (${tokens.length}) 与账号数量 (${documents.length}) 不匹配`;
+              elements.authTokensError.style.display = "block";
+              state.sessions = documents; state.converted = []; state.skipped = [{ sourceName: "file-input", path: "$", reason: `Token 数量 ${tokens.length} 与账号 ${documents.length} 不匹配` }];
+              state.sessions = documents;
+              elements.input.value = documents.length === 1 ? JSON.stringify(documents[0].value, null, 2) : JSON.stringify(documents.map((i) => i.value), null, 2);
+              updateOutput();
+              state.isProcessing = false;
+              return;
+            }
+            elements.authTokensError.style.display = "none";
+
             documents.forEach((item) => {
-              try { converted.push(convertSession(item.value, { now, sourceKey: item.sourceKey, sourceName: item.sourceName, sourcePath: item.path })); }
+              try { converted.push(convertSession(item.value, { now, sourceKey: item.sourceKey, sourceName: item.sourceName, sourcePath: item.path, customAuthToken: tokens ? tokens[converted.length] : "" })); }
               catch (error) { convertSkipped.push({ sourceName: item.sourceName, path: item.path, reason: error instanceof Error ? error.message : "无法转换" }); }
             });
             state.sessions = documents; state.converted = converted; state.skipped = convertSkipped;
@@ -1673,6 +1741,7 @@
         });
 
         elements.input.addEventListener("input", scheduleConvert);
+        if (elements.authTokensInput) elements.authTokensInput.addEventListener("input", scheduleConvert);
         elements.copyOutput.addEventListener("click", copyOutput);
         elements.downloadOutput.addEventListener("click", downloadOutput);
         elements.pickFiles.addEventListener("click", () => elements.fileInput.click());
